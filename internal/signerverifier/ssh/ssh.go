@@ -24,6 +24,11 @@ type Verifier struct {
 }
 
 func (v *Verifier) Verify(ctx context.Context, data []byte, sig []byte) error {
+
+	if err := rsa.VerifyPKCS1v15(v.public.(*rsa.PublicKey), crypto.SHA256, data, sig); err != nil {
+		fmt.Println(err)
+	}
+
 	// Verify ssh signature byte stream using crypto stdlib
 	return nil
 }
