@@ -102,7 +102,7 @@ func Import(path string) (*Verifier, error) {
 	trimmed := strings.TrimSpace(string(output[:]))
 	parts := strings.Split(trimmed, " ")
 	if len(parts) < 2 {
-		return nil, fmt.Errorf("unexepcted key fingerpring: %v", trimmed)
+		return nil, fmt.Errorf("unexepcted key fingerprint: %v", trimmed)
 	}
 	keyid := parts[1]
 
