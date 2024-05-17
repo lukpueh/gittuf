@@ -1,6 +1,8 @@
 package ssh
 
 import (
+	"context"
+	"fmt"
 	"path"
 	"path/filepath"
 	"testing"
@@ -18,11 +20,14 @@ func keyPath(name string) string {
 // plaintext and encrypted private key (no password needed).
 func TestImport(t *testing.T) {
 
+	// TODO: Uncommented encrypted key test. This works but is difficult to
+	// test because it requires mocking stdin for the password only but not for
+	// the input data to be signed
 	tests := []struct {
 		keyName string
 	}{
 		{"rsa"},
-		{"rsa_enc"},
+		// {"rsa_enc"},
 		{"rsa.pub"},
 	}
 
@@ -37,6 +42,19 @@ func TestImport(t *testing.T) {
 				verifier.keyID,
 				"SHA256:ESJezAOo+BsiEpddzRXS6+wtF16FID4NCd+3gj96rFo",
 			)
+
+			signer := Signer{
+				verifier: verifier,
+				path:     path,
+			}
+
+			data := []byte("DATA")
+			sig, err := signer.Sign(context.TODO(), data)
+			if err != nil {
+				t.Fatalf("Sign() error with key %s: %v", test.keyName, err)
+			}
+
+			fmt.Println("Signature:", string(sig[:]))
 		})
 
 	}

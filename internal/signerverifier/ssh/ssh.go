@@ -2,6 +2,7 @@
 package ssh
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/rsa"
@@ -44,16 +45,21 @@ type Signer struct {
 
 func (s *Signer) Sign(ctx context.Context, data []byte) ([]byte, error) {
 	// Call ssh-keygen command to create signature
-	// 		ssh-keygen -f <s.path> -y sign
+	cmd := exec.Command("ssh-keygen", "-Y", "sign", "-n", "gittuf", "-f", s.path)
 
-	// Handle errors (key not found, etc.)
+	cmd.Stdin = bytes.NewBuffer(data)
 
-	sig := []byte("")
+	output, err := cmd.Output()
+	if err != nil {
+		// TODO: Handle signing error (exit 255) on world-readable key file
+		//    git doesn't store read permissions; maybe need to chmod in test
+		return nil, fmt.Errorf("failed to run command %v: %v", cmd, err)
+	}
 
-	// Parse signature and return bytes
-	return sig, nil
+	return output, nil
 
 }
+
 func (s *Signer) KeyID() (string, error) {
 	return s.verifier.keyID, nil
 }
