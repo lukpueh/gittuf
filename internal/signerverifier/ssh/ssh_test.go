@@ -2,7 +2,6 @@ package ssh
 
 import (
 	"context"
-	"fmt"
 	"path"
 	"path/filepath"
 	"testing"
@@ -54,7 +53,10 @@ func TestImport(t *testing.T) {
 				t.Fatalf("Sign() error with key %s: %v", test.keyName, err)
 			}
 
-			fmt.Println("Signature:", string(sig[:]))
+			err = verifier.Verify(context.TODO(), data, sig)
+			if err != nil {
+				t.Fatalf("Verifiy() error with key %s: %v", test.keyName, err)
+			}
 		})
 
 	}

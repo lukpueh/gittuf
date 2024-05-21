@@ -11,6 +11,9 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/hiddeco/sshsig"
+	"golang.org/x/crypto/ssh"
 )
 
 // dsse.Verifier interface implementation to be used with ssh Signer
@@ -25,11 +28,22 @@ type Verifier struct {
 
 func (v *Verifier) Verify(ctx context.Context, data []byte, sig []byte) error {
 
-	if err := rsa.VerifyPKCS1v15(v.public.(*rsa.PublicKey), crypto.SHA256, data, sig); err != nil {
-		fmt.Println(err)
+	pub, err := ssh.NewPublicKey(v.public)
+	if err != nil {
+		return fmt.Errorf("failed to create ssh public key instance: %v", err)
 	}
 
-	// Verify ssh signature byte stream using crypto stdlib
+	signature, err := sshsig.Unarmor(sig)
+	if err != nil {
+		return fmt.Errorf("failed to create ssh signature instance: %v", err)
+	}
+
+	message := bytes.NewReader(data)
+	hash := sshsig.HashSHA512
+	if err = sshsig.Verify(message, signature, pub, hash, "gittuf"); err != nil {
+		return fmt.Errorf("failed to verify signature: %v", err)
+	}
+
 	return nil
 }
 func (v *Verifier) KeyID() (string, error) {
