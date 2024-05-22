@@ -10,7 +10,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"os/exec"
-	"strings"
 
 	"github.com/hiddeco/sshsig"
 	"golang.org/x/crypto/ssh"
@@ -117,19 +116,8 @@ func Import(path string) (*Verifier, error) {
 		return nil, fmt.Errorf("unsupported key type: %T", k)
 	}
 
-	// Call ssh-keygen cmd to create a fingerprint to be used as keyid
-	cmd = exec.Command("ssh-keygen", "-l", "-f", path)
-	output, err = cmd.Output()
-	if err != nil {
-		return nil, fmt.Errorf("failed to run command %v: %v", cmd, err)
-	}
-
-	trimmed := strings.TrimSpace(string(output[:]))
-	parts := strings.Split(trimmed, " ")
-	if len(parts) < 2 {
-		return nil, fmt.Errorf("unexepcted key fingerprint: %v", trimmed)
-	}
-	keyid := parts[1]
+	sshPub, _ := ssh.NewPublicKey(pub.(interface{}))
+	keyid := ssh.FingerprintSHA256(sshPub)
 
 	return &Verifier{
 		keyID:  keyid,
