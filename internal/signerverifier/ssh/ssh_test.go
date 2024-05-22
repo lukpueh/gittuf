@@ -56,8 +56,8 @@ func TestImport(t *testing.T) {
 			)
 
 			signer := Signer{
-				verifier: verifier,
-				path:     path,
+				Verifier: verifier,
+				Path:     path,
 			}
 
 			data := []byte("DATA")

@@ -60,13 +60,13 @@ func (v *Verifier) Public() crypto.PublicKey {
 // and keyid
 // Uses ssh-keygen to sign with key from path
 type Signer struct {
-	verifier *Verifier
-	path     string
+	Verifier *Verifier
+	Path     string
 }
 
 func (s *Signer) Sign(ctx context.Context, data []byte) ([]byte, error) {
 	// Call ssh-keygen command to create signature
-	cmd := exec.Command("ssh-keygen", "-Y", "sign", "-n", "gittuf", "-f", s.path)
+	cmd := exec.Command("ssh-keygen", "-Y", "sign", "-n", "gittuf", "-f", s.Path)
 
 	cmd.Stdin = bytes.NewBuffer(data)
 
@@ -82,7 +82,7 @@ func (s *Signer) Sign(ctx context.Context, data []byte) ([]byte, error) {
 }
 
 func (s *Signer) KeyID() (string, error) {
-	return s.verifier.keyID, nil
+	return s.Verifier.keyID, nil
 }
 
 // Import Verifier from path using ssh-keygen
