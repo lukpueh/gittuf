@@ -70,6 +70,11 @@ func TestImport(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Verifiy() error with key %s: %v", test.keyName, err)
 			}
+
+			err = verifier.Verify(context.TODO(), []byte("NOT DATA"), sig)
+			if err == nil {
+				t.Fatalf("Verifiy() error with key %s: %v", test.keyName, err)
+			}
 		})
 
 	}
