@@ -75,6 +75,27 @@ func TestImport(t *testing.T) {
 			if err == nil {
 				t.Fatalf("Verifiy() error with key %s: %v", test.keyName, err)
 			}
+
+			keyid, metadata, err := verifier.ToMetadata()
+
+			if err != nil {
+				t.Fatalf("%s: %v", test.keyName, err)
+			}
+
+			verifier2, err := FromMetadata(keyid, metadata)
+			if err != nil {
+				t.Fatalf("%s: %v", test.keyName, err)
+			}
+
+			err = verifier2.Verify(context.TODO(), data, sig)
+			if err != nil {
+				t.Fatalf("Verifiy() error with key %s: %v", test.keyName, err)
+			}
+
+			err = verifier2.Verify(context.TODO(), []byte("NOT DATA"), sig)
+			if err == nil {
+				t.Fatalf("Verifiy() error with key %s: %v", test.keyName, err)
+			}
 		})
 
 	}

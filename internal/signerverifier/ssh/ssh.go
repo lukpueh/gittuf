@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/gittuf/gittuf/internal/third_party/go-securesystemslib/signerverifier"
+	"github.com/gittuf/gittuf/internal/tuf"
 	"github.com/hiddeco/sshsig"
 	"golang.org/x/crypto/ssh"
 )
@@ -22,8 +24,10 @@ import (
 
 // TODO: make sure this can be added to tuf metadata
 type Verifier struct {
-	keyID  string
-	public crypto.PublicKey
+	keyID   string
+	keyType string
+	scheme  string
+	public  crypto.PublicKey
 }
 
 func (v *Verifier) Verify(ctx context.Context, data []byte, sig []byte) error {
@@ -51,8 +55,37 @@ func (v *Verifier) Verify(ctx context.Context, data []byte, sig []byte) error {
 func (v *Verifier) KeyID() (string, error) {
 	return v.keyID, nil
 }
+
 func (v *Verifier) Public() crypto.PublicKey {
 	return v.public
+}
+
+func (v *Verifier) ToMetadata() (string, *signerverifier.SSLibKey, error) {
+	sshPub, err := ssh.NewPublicKey(v.public)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return v.keyID, &tuf.Key{
+		KeyType: v.keyType,
+		Scheme:  v.scheme,
+		KeyVal: signerverifier.KeyVal{
+			Public: string(sshPub.Marshal()),
+		},
+	}, nil
+}
+func FromMetadata(keyID string, key *signerverifier.SSLibKey) (*Verifier, error) {
+	sshPub, err := ssh.ParsePublicKey([]byte(key.KeyVal.Public))
+	if err != nil {
+		return nil, err
+	}
+
+	return &Verifier{
+		keyID:   keyID,
+		keyType: key.KeyType,
+		scheme:  key.Scheme,
+		public:  sshPub.(ssh.CryptoPublicKey).CryptoPublicKey(),
+	}, nil
 }
 
 // dsse.Signer interface implementation for ssh key signing
@@ -124,6 +157,8 @@ func Import(path string) (*Verifier, error) {
 
 	sshPub, _ := ssh.NewPublicKey(verifier.public)
 	verifier.keyID = ssh.FingerprintSHA256(sshPub)
+	verifier.scheme = sshPub.Type()
+	verifier.keyType = "ssh"
 
 	return verifier, nil
 }
