@@ -4,14 +4,15 @@ import (
 	"context"
 	"path"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 // FIXME: There must be a more idomatic way to do this, like using go:embed?
-func keyPath(name string) string {
-	dir, _ := filepath.Abs("../../testartifacts/testdata/keys/ssh")
+func testDataPath(name string) string {
+	dir, _ := filepath.Abs("../../testartifacts/testdata/")
 	return path.Join(dir, name)
 }
 
@@ -26,13 +27,18 @@ func TestImport(t *testing.T) {
 		keyName string
 	}{
 		{"rsa"},
-		// {"rsa_enc"},
+		{"rsa_enc"},
 		{"rsa.pub"},
 	}
 
 	for _, test := range tests {
 		t.Run(test.keyName, func(t *testing.T) {
-			path := keyPath(test.keyName)
+			if strings.Contains(test.keyName, "_enc") {
+				t.Setenv("SSH_ASKPASS", testDataPath("scripts/askpass.sh"))
+				t.Setenv("SSH_ASKPASS_REQUIRE", "force")
+			}
+
+			path := testDataPath("keys/ssh/" + test.keyName)
 			verifier, err := Import(path)
 			if err != nil {
 				t.Fatalf("Import(%s) error: %v", test.keyName, err)
