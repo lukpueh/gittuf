@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto"
+	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -38,6 +39,8 @@ func (v *Verifier) Verify(ctx context.Context, data []byte, sig []byte) error {
 	}
 
 	message := bytes.NewReader(data)
+
+	// This is the default hash algorithm used in Sign for any key
 	hash := sshsig.HashSHA512
 	if err = sshsig.Verify(message, signature, pub, hash, "gittuf"); err != nil {
 		return fmt.Errorf("failed to verify signature: %v", err)
@@ -105,23 +108,22 @@ func Import(path string) (*Verifier, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse public key: %v", err)
 	}
+	var verifier *Verifier
+	verifier = new(Verifier)
 
 	switch k := pub.(type) {
 	case *rsa.PublicKey:
-		fmt.Println("success!")
-		// TODO: Create SSlibKey, assign scheme for keytype
-		// scheme must match scheme used by `ssh-keygen -Y sign`!!
+		verifier.public = k
+
+	case *ecdsa.PublicKey:
+		verifier.public = k
 
 	default:
 		return nil, fmt.Errorf("unsupported key type: %T", k)
 	}
 
-	sshPub, _ := ssh.NewPublicKey(pub.(interface{}))
-	keyid := ssh.FingerprintSHA256(sshPub)
+	sshPub, _ := ssh.NewPublicKey(verifier.public)
+	verifier.keyID = ssh.FingerprintSHA256(sshPub)
 
-	return &Verifier{
-		keyID:  keyid,
-		public: pub.(*rsa.PublicKey),
-	}, nil
-
+	return verifier, nil
 }

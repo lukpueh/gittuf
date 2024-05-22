@@ -20,15 +20,22 @@ func testDataPath(name string) string {
 // plaintext and encrypted private key (no password needed).
 func TestImport(t *testing.T) {
 
+	rsa_keyid := "SHA256:ESJezAOo+BsiEpddzRXS6+wtF16FID4NCd+3gj96rFo"
+	ecdsa_keyid := "SHA256:oNYBImx035m3rl1Sn/+j5DPrlS9+zXn7k3mjNrC5eto"
+
 	// TODO: Uncommented encrypted key test. This works but is difficult to
 	// test because it requires mocking stdin for the password only but not for
 	// the input data to be signed
 	tests := []struct {
 		keyName string
+		keyID   string
 	}{
-		{"rsa"},
-		{"rsa_enc"},
-		{"rsa.pub"},
+		{"rsa", rsa_keyid},
+		{"rsa_enc", rsa_keyid},
+		{"rsa.pub", rsa_keyid},
+		{"ecdsa", ecdsa_keyid},
+		{"ecdsa_enc", ecdsa_keyid},
+		{"ecdsa.pub", ecdsa_keyid},
 	}
 
 	for _, test := range tests {
@@ -45,7 +52,7 @@ func TestImport(t *testing.T) {
 			}
 			assert.Equal(t,
 				verifier.keyID,
-				"SHA256:ESJezAOo+BsiEpddzRXS6+wtF16FID4NCd+3gj96rFo",
+				test.keyID,
 			)
 
 			signer := Signer{
