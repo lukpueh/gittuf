@@ -77,7 +77,6 @@ func TestImport(t *testing.T) {
 			}
 
 			keyid, metadata, err := verifier.ToMetadata()
-
 			if err != nil {
 				t.Fatalf("%s: %v", test.keyName, err)
 			}

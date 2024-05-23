@@ -8,6 +8,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"os/exec"
@@ -65,26 +66,32 @@ func (v *Verifier) ToMetadata() (string, *signerverifier.SSLibKey, error) {
 	if err != nil {
 		return "", nil, err
 	}
+	sshStr := base64.StdEncoding.EncodeToString(sshPub.Marshal())
 
 	return v.keyID, &tuf.Key{
 		KeyType: v.keyType,
 		Scheme:  v.scheme,
 		KeyVal: signerverifier.KeyVal{
-			Public: string(sshPub.Marshal()),
+			Public: sshStr,
 		},
 	}, nil
 }
 func FromMetadata(keyID string, key *signerverifier.SSLibKey) (*Verifier, error) {
-	sshPub, err := ssh.ParsePublicKey([]byte(key.KeyVal.Public))
+	sshBytes, err := base64.StdEncoding.DecodeString(key.KeyVal.Public)
 	if err != nil {
 		return nil, err
 	}
+	sshPub, err := ssh.ParsePublicKey(sshBytes)
+	if err != nil {
+		return nil, err
+	}
+	sshCrypto := sshPub.(ssh.CryptoPublicKey).CryptoPublicKey()
 
 	return &Verifier{
 		keyID:   keyID,
 		keyType: key.KeyType,
 		scheme:  key.Scheme,
-		public:  sshPub.(ssh.CryptoPublicKey).CryptoPublicKey(),
+		public:  sshCrypto,
 	}, nil
 }
 
