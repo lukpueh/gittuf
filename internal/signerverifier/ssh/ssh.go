@@ -5,11 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base64"
-	"encoding/pem"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -126,46 +122,27 @@ func (s *Signer) KeyID() (string, error) {
 }
 
 // Import Verifier from path using ssh-keygen
-//   - Path can be public or private encrypted or plain key, much like git's
-//     user.signingKey config
-//   - Currently only rsa is supported
+// Path can be public or private encrypted or plain key, much like git's
+// user.signingKey config
 func Import(path string) (*Verifier, error) {
-	// Call ssh-keygen cmd to get x509/SPKI key data
-	// NOTE: `-m pkcs8` is only supported in the latest openssh versions for
-	// ed25519 keys
-	cmd := exec.Command("ssh-keygen", "-m", "pkcs8", "-e", "-f", path)
+	cmd := exec.Command("ssh-keygen", "-e", "-f", path)
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("failed to run command %v: %v", cmd, err)
 	}
 
-	block, _ := pem.Decode(output)
-	if block == nil {
-		return nil, fmt.Errorf("failed to run decode pem")
+	sshPub, err := parseSSH2Key(string(output))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode pem ssh2 key: %v", err)
 	}
 
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse public key: %v", err)
-	}
 	var verifier *Verifier
 	verifier = new(Verifier)
 
-	switch k := pub.(type) {
-	case *rsa.PublicKey:
-		verifier.public = k
-
-	case *ecdsa.PublicKey:
-		verifier.public = k
-
-	default:
-		return nil, fmt.Errorf("unsupported key type: %T", k)
-	}
-
-	sshPub, _ := ssh.NewPublicKey(verifier.public)
 	verifier.keyID = ssh.FingerprintSHA256(sshPub)
 	verifier.scheme = sshPub.Type()
 	verifier.keyType = "ssh"
+	verifier.public = sshPub.(ssh.CryptoPublicKey).CryptoPublicKey()
 
 	return verifier, nil
 }
