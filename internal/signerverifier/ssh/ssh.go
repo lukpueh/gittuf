@@ -16,11 +16,6 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// dsse.Verifier interface implementation to be used with ssh Signer
-// TODO: Check ssh signature format. If it isn't different from other rsa,
-// ecdsa, ed25519 signature formats, we don't need a custom ssh Verifier.
-
-// TODO: make sure this can be added to tuf metadata
 type Verifier struct {
 	keyID   string
 	keyType string
@@ -32,20 +27,20 @@ func (v *Verifier) Verify(ctx context.Context, data []byte, sig []byte) error {
 
 	pub, err := ssh.NewPublicKey(v.public)
 	if err != nil {
-		return fmt.Errorf("failed to create ssh public key instance: %v", err)
+		return fmt.Errorf("failed to parse ssh public key: %v", err)
 	}
 
 	signature, err := sshsig.Unarmor(sig)
 	if err != nil {
-		return fmt.Errorf("failed to create ssh signature instance: %v", err)
+		return fmt.Errorf("failed to parse ssh signature: %v", err)
 	}
 
 	message := bytes.NewReader(data)
 
-	// This is the default hash algorithm used in Sign for any key
+	// ssh-keygen uses sha512 to sign with **any*** key
 	hash := sshsig.HashSHA512
 	if err = sshsig.Verify(message, signature, pub, hash, "gittuf"); err != nil {
-		return fmt.Errorf("failed to verify signature: %v", err)
+		return fmt.Errorf("failed to verify ssh signature: %v", err)
 	}
 
 	return nil
@@ -101,7 +96,6 @@ type Signer struct {
 }
 
 func (s *Signer) Sign(ctx context.Context, data []byte) ([]byte, error) {
-	// Call ssh-keygen command to create signature
 	cmd := exec.Command("ssh-keygen", "-Y", "sign", "-n", "gittuf", "-f", s.Path)
 
 	cmd.Stdin = bytes.NewBuffer(data)
@@ -133,7 +127,7 @@ func Import(path string) (*Verifier, error) {
 
 	sshPub, err := parseSSH2Key(string(output))
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode pem ssh2 key: %v", err)
+		return nil, fmt.Errorf("failed to parse SSH2 key: %v", err)
 	}
 
 	var verifier *Verifier

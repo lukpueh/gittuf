@@ -10,15 +10,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// FIXME: There must be a more idomatic way to do this, like using go:embed?
+// FIXME: There must be a more idomatic way to do this
 func testDataPath(name string) string {
 	dir, _ := filepath.Abs("../../testartifacts/testdata/")
 	return path.Join(dir, name)
 }
 
-// Basic test to import the same rsa verifier from ssh public key and
-// plaintext and encrypted private key (no password needed).
-func TestImport(t *testing.T) {
+// Basic smoke test for ssh package for all supported keys
+func TestSSH(t *testing.T) {
 
 	rsa_keyid := "SHA256:ESJezAOo+BsiEpddzRXS6+wtF16FID4NCd+3gj96rFo"
 	ecdsa_keyid := "SHA256:oNYBImx035m3rl1Sn/+j5DPrlS9+zXn7k3mjNrC5eto"
@@ -52,7 +51,7 @@ func TestImport(t *testing.T) {
 			path := testDataPath("keys/ssh/" + test.keyName)
 			verifier, err := Import(path)
 			if err != nil {
-				t.Fatalf("Import(%s) error: %v", test.keyName, err)
+				t.Fatalf("%s: %v", test.keyName, err)
 			}
 			assert.Equal(t,
 				verifier.keyID,
@@ -67,17 +66,17 @@ func TestImport(t *testing.T) {
 			data := []byte("DATA")
 			sig, err := signer.Sign(context.TODO(), data)
 			if err != nil {
-				t.Fatalf("Sign() error with key %s: %v", test.keyName, err)
+				t.Fatalf("%s: %v", test.keyName, err)
 			}
 
 			err = verifier.Verify(context.TODO(), data, sig)
 			if err != nil {
-				t.Fatalf("Verifiy() error with key %s: %v", test.keyName, err)
+				t.Fatalf("%s: %v", test.keyName, err)
 			}
 
 			err = verifier.Verify(context.TODO(), []byte("NOT DATA"), sig)
 			if err == nil {
-				t.Fatalf("Verifiy() error with key %s: %v", test.keyName, err)
+				t.Fatalf("%s: %v", test.keyName, err)
 			}
 
 			keyid, metadata, err := verifier.ToMetadata()
@@ -92,18 +91,19 @@ func TestImport(t *testing.T) {
 
 			err = verifier2.Verify(context.TODO(), data, sig)
 			if err != nil {
-				t.Fatalf("Verifiy() error with key %s: %v", test.keyName, err)
+				t.Fatalf("%s: %v", test.keyName, err)
 			}
 
 			err = verifier2.Verify(context.TODO(), []byte("NOT DATA"), sig)
 			if err == nil {
-				t.Fatalf("Verifiy() error with key %s: %v", test.keyName, err)
+				t.Fatalf("%s: %v", test.keyName, err)
 			}
 		})
 
 	}
 }
 
+// Test parseSSH2Key helper function (with rsa only)
 func TestParseSSH2Key(t *testing.T) {
 	data := `---- BEGIN SSH2 PUBLIC KEY ----
 Comment: "3072-bit RSA, converted by me@me.me from OpenSSH"
@@ -119,7 +119,7 @@ COb1zE7zaJacJ42tNdVq7Z3x+Hik9PRfgBPt1oF41SFSCp0YRPLxLMFdTjNgV3HZXVNlq6
 
 	key, err := parseSSH2Key(data)
 	if err != nil {
-		t.Fatalf("%s", err)
+		t.Fatalf("%v", err)
 	}
 	assert.Equal(t, key.Type(), "ssh-rsa")
 }
