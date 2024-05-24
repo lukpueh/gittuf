@@ -10,24 +10,27 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/gittuf/gittuf/internal/third_party/go-securesystemslib/signerverifier"
-	"github.com/gittuf/gittuf/internal/tuf"
 	"github.com/hiddeco/sshsig"
 	"golang.org/x/crypto/ssh"
 )
 
-type Verifier struct {
+// FIXME: make this the interface for Keys in TUF metadata
+type Key struct {
+	KeyType string
+	KeyVal  KeyVal
+	Scheme  string
 	keyID   string
-	keyType string
-	scheme  string
-	public  crypto.PublicKey
 }
 
-func (v *Verifier) Verify(ctx context.Context, data []byte, sig []byte) error {
+type KeyVal struct {
+	Public string
+}
 
-	pub, err := ssh.NewPublicKey(v.public)
+func (k *Key) Verify(ctx context.Context, data []byte, sig []byte) error {
+
+	pub, err := parseSSH2Body(k.KeyVal.Public)
 	if err != nil {
-		return fmt.Errorf("failed to parse ssh public key: %v", err)
+		return fmt.Errorf("failed to parse ssh public key material: %v", err)
 	}
 
 	signature, err := sshsig.Unarmor(sig)
@@ -45,54 +48,22 @@ func (v *Verifier) Verify(ctx context.Context, data []byte, sig []byte) error {
 
 	return nil
 }
-func (v *Verifier) KeyID() (string, error) {
-	return v.keyID, nil
+
+func (k *Key) KeyID() (string, error) {
+	return k.keyID, nil
 }
 
-func (v *Verifier) Public() crypto.PublicKey {
-	return v.public
-}
-
-func (v *Verifier) ToMetadata() (string, *signerverifier.SSLibKey, error) {
-	sshPub, err := ssh.NewPublicKey(v.public)
-	if err != nil {
-		return "", nil, err
-	}
-	sshStr := base64.StdEncoding.EncodeToString(sshPub.Marshal())
-
-	return v.keyID, &tuf.Key{
-		KeyType: v.keyType,
-		Scheme:  v.scheme,
-		KeyVal: signerverifier.KeyVal{
-			Public: sshStr,
-		},
-	}, nil
-}
-
-func FromMetadata(keyID string, key *signerverifier.SSLibKey) (*Verifier, error) {
-
-	sshPub, err := parseSSH2Body(key.KeyVal.Public)
-	if err != nil {
-		return nil, err
-	}
-
-	sshCrypto := sshPub.(ssh.CryptoPublicKey).CryptoPublicKey()
-
-	return &Verifier{
-		keyID:   keyID,
-		keyType: key.KeyType,
-		scheme:  key.Scheme,
-		public:  sshCrypto,
-	}, nil
+// FIXME: required by dsse Verifier interface; consider fixing interface
+func (k *Key) Public() crypto.PublicKey {
+	sshKey, _ := parseSSH2Body(k.KeyVal.Public)
+	return sshKey.(ssh.CryptoPublicKey).CryptoPublicKey()
 }
 
 // dsse.Signer interface implementation for ssh key signing
-// Includes verififier to have a single source of truth about signing scheme
-// and keyid
-// Uses ssh-keygen to sign with key from path
+// Includes `Key` as single source of truth for signing scheme and keyid
 type Signer struct {
-	Verifier *Verifier
-	Path     string
+	Key  *Key
+	Path string
 }
 
 func (s *Signer) Sign(ctx context.Context, data []byte) ([]byte, error) {
@@ -112,13 +83,13 @@ func (s *Signer) Sign(ctx context.Context, data []byte) ([]byte, error) {
 }
 
 func (s *Signer) KeyID() (string, error) {
-	return s.Verifier.keyID, nil
+	return s.Key.keyID, nil
 }
 
-// Import Verifier from path using ssh-keygen
+// Import Key from path using ssh-keygen
 // Path can be public or private encrypted or plain key, much like git's
 // user.signingKey config
-func Import(path string) (*Verifier, error) {
+func Import(path string) (*Key, error) {
 	cmd := exec.Command("ssh-keygen", "-e", "-f", path)
 	output, err := cmd.Output()
 	if err != nil {
@@ -130,15 +101,14 @@ func Import(path string) (*Verifier, error) {
 		return nil, fmt.Errorf("failed to parse SSH2 key: %v", err)
 	}
 
-	var verifier *Verifier
-	verifier = new(Verifier)
-
-	verifier.keyID = ssh.FingerprintSHA256(sshPub)
-	verifier.scheme = sshPub.Type()
-	verifier.keyType = "ssh"
-	verifier.public = sshPub.(ssh.CryptoPublicKey).CryptoPublicKey()
-
-	return verifier, nil
+	return &Key{
+		keyID:   ssh.FingerprintSHA256(sshPub),
+		KeyType: "ssh",
+		Scheme:  sshPub.Type(),
+		KeyVal: KeyVal{
+			Public: base64.StdEncoding.EncodeToString(sshPub.Marshal()),
+		},
+	}, nil
 }
 
 func parseSSH2Body(body string) (ssh.PublicKey, error) {

@@ -49,18 +49,18 @@ func TestSSH(t *testing.T) {
 			}
 
 			path := testDataPath("keys/ssh/" + test.keyName)
-			verifier, err := Import(path)
+			key, err := Import(path)
 			if err != nil {
 				t.Fatalf("%s: %v", test.keyName, err)
 			}
 			assert.Equal(t,
-				verifier.keyID,
+				key.keyID,
 				test.keyID,
 			)
 
 			signer := Signer{
-				Verifier: verifier,
-				Path:     path,
+				Key:  key,
+				Path: path,
 			}
 
 			data := []byte("DATA")
@@ -69,32 +69,12 @@ func TestSSH(t *testing.T) {
 				t.Fatalf("%s: %v", test.keyName, err)
 			}
 
-			err = verifier.Verify(context.TODO(), data, sig)
+			err = key.Verify(context.TODO(), data, sig)
 			if err != nil {
 				t.Fatalf("%s: %v", test.keyName, err)
 			}
 
-			err = verifier.Verify(context.TODO(), []byte("NOT DATA"), sig)
-			if err == nil {
-				t.Fatalf("%s: %v", test.keyName, err)
-			}
-
-			keyid, metadata, err := verifier.ToMetadata()
-			if err != nil {
-				t.Fatalf("%s: %v", test.keyName, err)
-			}
-
-			verifier2, err := FromMetadata(keyid, metadata)
-			if err != nil {
-				t.Fatalf("%s: %v", test.keyName, err)
-			}
-
-			err = verifier2.Verify(context.TODO(), data, sig)
-			if err != nil {
-				t.Fatalf("%s: %v", test.keyName, err)
-			}
-
-			err = verifier2.Verify(context.TODO(), []byte("NOT DATA"), sig)
+			err = key.Verify(context.TODO(), []byte("NOT DATA"), sig)
 			if err == nil {
 				t.Fatalf("%s: %v", test.keyName, err)
 			}

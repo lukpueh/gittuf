@@ -54,21 +54,21 @@ func TestVerifyEnvelope(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Nil(t, VerifyEnvelope(context.Background(), env, []sslibdsse.Verifier{signer.Verifier}, 1))
+	assert.Nil(t, VerifyEnvelope(context.Background(), env, []sslibdsse.Verifier{signer.Key}, 1))
 }
 
 func loadSigner(filename string) (*ssh.Signer, error) {
 	dir, _ := filepath.Abs("../../testartifacts/testdata/keys/ssh")
 	keyPath := path.Join(dir, filename)
 
-	verifier, err := ssh.Import(keyPath)
+	key, err := ssh.Import(keyPath)
 	if err != nil {
 		return nil, err
 	}
 
 	signer := &ssh.Signer{
-		Verifier: verifier,
-		Path:     keyPath,
+		Key:  key,
+		Path: keyPath,
 	}
 
 	return signer, nil
