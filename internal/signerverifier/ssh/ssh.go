@@ -77,15 +77,14 @@ func (v *Verifier) ToMetadata() (string, *signerverifier.SSLibKey, error) {
 		},
 	}, nil
 }
+
 func FromMetadata(keyID string, key *signerverifier.SSLibKey) (*Verifier, error) {
-	sshBytes, err := base64.StdEncoding.DecodeString(key.KeyVal.Public)
+
+	sshPub, err := parseSSH2Body(key.KeyVal.Public)
 	if err != nil {
 		return nil, err
 	}
-	sshPub, err := ssh.ParsePublicKey(sshBytes)
-	if err != nil {
-		return nil, err
-	}
+
 	sshCrypto := sshPub.(ssh.CryptoPublicKey).CryptoPublicKey()
 
 	return &Verifier{
@@ -180,9 +179,10 @@ func parseSSH2Body(body string) (ssh.PublicKey, error) {
 }
 
 // Parse SSH2 public key as defined in RFC4716 (3.  Key File Format)
-// Missing checks
-// - line length
-// - exact comment format
+// Ignores:
+// - line length constraints
+// - other line termination charcters than "\n"
+// - exact header tag and header value format
 func parseSSH2Key(data string) (ssh.PublicKey, error) {
 
 	header := "---- BEGIN SSH2 PUBLIC KEY ----"
@@ -193,7 +193,7 @@ func parseSSH2Key(data string) (ssh.PublicKey, error) {
 
 	data = strings.Trim(data, lineSep)
 
-	// Strip header and footer, fail if they don't exist
+	// Strip header and footer
 	lines := strings.Split(data, lineSep)
 	if lines[0] != header {
 		return nil, fmt.Errorf("missing header: %s", header)
@@ -210,14 +210,14 @@ func parseSSH2Key(data string) (ssh.PublicKey, error) {
 		if strings.Contains(lines[i], commentSep) {
 			continue
 		}
-		// first line can not be a continued line
+		// Skip i==1, first line can not be a continued line
 		if i > 0 && strings.HasSuffix(lines[i-1], continues) {
 			continue
 		}
 		break
 	}
 
+	// Parse key material
 	body := strings.Join(lines[i:], "")
-	fmt.Println(body)
 	return parseSSH2Body(body)
 }

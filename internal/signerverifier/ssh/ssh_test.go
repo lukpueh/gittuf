@@ -102,7 +102,7 @@ func TestImport(t *testing.T) {
 
 func TestParseSSH2Key(t *testing.T) {
 	data := `---- BEGIN SSH2 PUBLIC KEY ----
-Comment: "3072-bit RSA, converted by me@me.me from OpenSSH"\
+Comment: "3072-bit RSA, converted by me@me.me from OpenSSH"
 AAAAB3NzaC1yc2EAAAADAQABAAABgQDEI4rdCY/zA3oOMet1JYJ+VugUapNfj7hcAZem1C
 Rusd5FTiWVmNh4yywgA+1JWDsBnyLfbOZBiz4fiQQ++bRF/mDXQx2Qr2xgCS27tNyyv8tf
 ERGuglAu69T7aLsfPGn4WCaVX3+OuALZVaQl/F5MzoDkiaZkCsBrVZkfL3393Zlhseb/bY
