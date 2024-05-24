@@ -22,6 +22,7 @@ func TestImport(t *testing.T) {
 
 	rsa_keyid := "SHA256:ESJezAOo+BsiEpddzRXS6+wtF16FID4NCd+3gj96rFo"
 	ecdsa_keyid := "SHA256:oNYBImx035m3rl1Sn/+j5DPrlS9+zXn7k3mjNrC5eto"
+	ed25519_keyid := "SHA256:cewFulOIcROWnolPTGEQXG4q7xvLIn3kNTCMqdfoP4E"
 
 	// TODO: Uncommented encrypted key test. This works but is difficult to
 	// test because it requires mocking stdin for the password only but not for
@@ -36,6 +37,9 @@ func TestImport(t *testing.T) {
 		{"ecdsa", ecdsa_keyid},
 		{"ecdsa_enc", ecdsa_keyid},
 		{"ecdsa.pub", ecdsa_keyid},
+		{"ed25519", ed25519_keyid},
+		{"ed25519_enc", ed25519_keyid},
+		{"ed25519.pub", ed25519_keyid},
 	}
 
 	for _, test := range tests {
