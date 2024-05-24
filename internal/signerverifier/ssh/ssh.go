@@ -12,6 +12,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"os/exec"
+	"strings"
 
 	"github.com/gittuf/gittuf/internal/third_party/go-securesystemslib/signerverifier"
 	"github.com/gittuf/gittuf/internal/tuf"
@@ -168,4 +169,55 @@ func Import(path string) (*Verifier, error) {
 	verifier.keyType = "ssh"
 
 	return verifier, nil
+}
+
+func parseSSH2Body(body string) (ssh.PublicKey, error) {
+	bodyBytes, err := base64.StdEncoding.DecodeString(body)
+	if err != nil {
+		return nil, err
+	}
+	return ssh.ParsePublicKey(bodyBytes)
+}
+
+// Parse SSH2 public key as defined in RFC4716 (3.  Key File Format)
+// Missing checks
+// - line length
+// - exact comment format
+func parseSSH2Key(data string) (ssh.PublicKey, error) {
+
+	header := "---- BEGIN SSH2 PUBLIC KEY ----"
+	footer := "---- END SSH2 PUBLIC KEY ----"
+	lineSep := "\n"
+	commentSep := ":"
+	continues := "\\"
+
+	data = strings.Trim(data, lineSep)
+
+	// Strip header and footer, fail if they don't exist
+	lines := strings.Split(data, lineSep)
+	if lines[0] != header {
+		return nil, fmt.Errorf("missing header: %s", header)
+	}
+	last := len(lines) - 1
+	if lines[last] != footer {
+		return nil, fmt.Errorf("missing footer %s", footer)
+	}
+	lines = lines[1:last]
+
+	// Strip comments
+	var i int
+	for i = 0; i < len(lines); i++ {
+		if strings.Contains(lines[i], commentSep) {
+			continue
+		}
+		// first line can not be a continued line
+		if i > 0 && strings.HasSuffix(lines[i-1], continues) {
+			continue
+		}
+		break
+	}
+
+	body := strings.Join(lines[i:], "")
+	fmt.Println(body)
+	return parseSSH2Body(body)
 }

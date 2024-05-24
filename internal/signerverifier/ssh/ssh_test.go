@@ -99,3 +99,23 @@ func TestImport(t *testing.T) {
 
 	}
 }
+
+func TestParseSSH2Key(t *testing.T) {
+	data := `---- BEGIN SSH2 PUBLIC KEY ----
+Comment: "3072-bit RSA, converted by me@me.me from OpenSSH"\
+AAAAB3NzaC1yc2EAAAADAQABAAABgQDEI4rdCY/zA3oOMet1JYJ+VugUapNfj7hcAZem1C
+Rusd5FTiWVmNh4yywgA+1JWDsBnyLfbOZBiz4fiQQ++bRF/mDXQx2Qr2xgCS27tNyyv8tf
+ERGuglAu69T7aLsfPGn4WCaVX3+OuALZVaQl/F5MzoDkiaZkCsBrVZkfL3393Zlhseb/bY
+87f7UOwArq3WMMK9Qp0cO8/8rsZnzu3nFClYSILKUx7Vrf7uSaUtl39Dh/QMX1m6Ax0Mh4
+3gMnk+Fbrhai+BWo3Y58A5+LBUL3jqDkmXzFvhYJgGKISU5nfKCHDDqlug+l5wJmGus1G8
+jZ5uY7s2ZHS5yumPQNoCIZztmLm0DgQqNN4J+Yub5+L6yCgA1Q6mKq/631/DyHvF8e5Gln
+COb1zE7zaJacJ42tNdVq7Z3x+Hik9PRfgBPt1oF41SFSCp0YRPLxLMFdTjNgV3HZXVNlq6
+6IhyoDZ2hjd5XmMmq7h1a8IybBsItJ8Ikk4X12vIzCSqOlylZS4+U=
+---- END SSH2 PUBLIC KEY ----`
+
+	key, err := parseSSH2Key(data)
+	if err != nil {
+		t.Fatalf("%s", err)
+	}
+	assert.Equal(t, key.Type(), "ssh-rsa")
+}
