@@ -52,11 +52,20 @@ func TestSignEnvelope(t *testing.T) {
 }
 
 func TestVerifyEnvelope(t *testing.T) {
-	// Setup test key
+	// Setup test key pair
 	tmpDir := t.TempDir()
-	keyPath := filepath.Join(tmpDir, "ecdsa")
-	if err := os.WriteFile(keyPath, artifacts.SSHECDSAPrivate, 0o600); err != nil {
-		t.Fatal(err)
+	keyPath := filepath.Join(tmpDir, "rsa")
+	keys := []struct {
+		path string
+		data []byte
+	}{
+		{keyPath, artifacts.SSHRSAPrivate},
+		{keyPath + ".pub", artifacts.SSHRSAPublicSSH},
+	}
+	for _, key := range keys {
+		if err := os.WriteFile(key.path, key.data, 0o600); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	signer, err := loadSSHSigner(keyPath)
