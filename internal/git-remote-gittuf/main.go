@@ -149,6 +149,7 @@ func run() error {
 		return err
 	}
 
+	// Should this run only if !isPush?
 	for {
 		// When cloning/fetching, we have to hang until Git sets things up
 		// before we can update-ref

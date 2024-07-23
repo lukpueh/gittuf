@@ -177,6 +177,7 @@ func handleSSH(_, url string) (map[string]string, bool, error) {
 				if err != nil {
 					return nil, false, err
 				}
+				// Where is this used?
 				helperStdIn = &logWriteCloser{writeCloser: helperStdInPipe, name: "ssh stdin"}
 
 				if err := helper.Start(); err != nil {
@@ -194,6 +195,8 @@ func handleSSH(_, url string) (map[string]string, bool, error) {
 						break
 					}
 					// TODO: why do we need this nested infinite loop?
+					// I don't think we do
+					// IIUC we only do one full iteration of the outer loop
 
 					helperStdOutScanner := bufio.NewScanner(helperStdOut)
 					helperStdOutScanner.Split(splitOutput)
@@ -221,6 +224,7 @@ func handleSSH(_, url string) (map[string]string, bool, error) {
 							return nil, false, err
 						}
 
+						// Is the command still running after this?
 						if bytes.Equal(output, flushPkt) {
 							flushPktSeen = true
 							break
